@@ -300,7 +300,8 @@ public class YTPlayer extends ListenerAdapter {
             currentTrack.setPosition(time);
 
             channel.sendMessage("```" + timeFormat + "초로" + "\n"
-                    + timeFormatter(time, currentTrack.getDuration()) + "```").queue();
+                    + timeFormatter(time, currentTrack.getDuration()) + " / " +
+                    timeFormatter(currentTrack.getDuration(), currentTrack.getDuration()) + "```").queue();
 
             System.out.println("Jump to " + timeFormatter(time, currentTrack.getDuration()));
             return;
@@ -320,7 +321,8 @@ public class YTPlayer extends ListenerAdapter {
                 currentTrack.setPosition(time);
 
                 channel.sendMessage("```" + timeArr[0] + "분 " + timeArr[1] + "초로"  + "\n"
-                + timeFormatter(time, currentTrack.getDuration()) + "```").queue();
+                        + timeFormatter(time, currentTrack.getDuration()) + " / " +
+                        timeFormatter(currentTrack.getDuration(), currentTrack.getDuration()) + "```").queue();
 
                 System.out.println("Jump to " + timeFormatter(time, currentTrack.getDuration()));
                 return;
@@ -334,7 +336,8 @@ public class YTPlayer extends ListenerAdapter {
                 currentTrack.setPosition(time);
 
                 channel.sendMessage("```" + timeArr[0] + "시간 " + timeArr[1] + "분" + timeArr[2] + "초로" + "\n"
-                        + timeFormatter(time, currentTrack.getDuration()) + "```").queue();
+                        + timeFormatter(time, currentTrack.getDuration()) + " / " +
+                        timeFormatter(currentTrack.getDuration(), currentTrack.getDuration()) + "```").queue();
                 System.out.println("Seek to " + timeFormatter(time, currentTrack.getDuration()));
                 return;
             default:

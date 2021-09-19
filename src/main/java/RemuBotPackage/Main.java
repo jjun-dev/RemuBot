@@ -16,7 +16,7 @@ public class Main extends ListenerAdapter {
 
 
     public static void main(String[] args) throws LoginException, SocketException , ClosedByInterruptException {
-        JDA jda = JDABuilder.createDefault("")
+        JDA jda = JDABuilder.createDefault("ODg2MjYxNzYxNTUwOTgzMTgw.YTzBlQ.MvMtZDllRyVLbJAtBczyGEgI1eE")
                 .addEventListeners(new EVListener())
                 .build();
 
