@@ -165,7 +165,7 @@ public class YTPlayer extends ListenerAdapter {
                     }
 
                     for(int i = start; i <= end; i++) {
-                        musicManager.scheduler.get(0);
+                        musicManager.scheduler.get(start);
                     }
                     channel.sendMessage("```" + (start + 1) + " ~ " + (end + 1) + "번 곡이 삭제됨.\n" +
                         "삭제된 곡 수 : " + (end - start + 1) + "```").queue();
