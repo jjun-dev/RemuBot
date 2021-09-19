@@ -15,8 +15,9 @@ public class Help {
             "all : 현재 큐 상태 모두 출력\n" +
             "clear : 큐 초기화" +
             "\n\n" +
-            "d, del (index) :\n" +
-            "지정한 번호의 트랙을 큐에서 삭제" +
+            "d, del (index / start-end) :\n" +
+            "index : 지정한 번호의 트랙을 큐에서 삭제\n" +
+            "start-end : start번 트랙부터 end번 트랙까지 큐에서 삭제" +
             "\n\n" +
             "np, nowplaying :\n" +
             "현재 재생중인 노래 출력" +

@@ -129,20 +129,52 @@ public class YTPlayer extends ListenerAdapter {
 
     public void delete (TextChannel channel, String[] command) {
         if(command.length == 2) {
-            int index = Integer.parseInt(command[1]) - 1;
-            int size = musicManager.scheduler.getQueue().size();
-            if(index > size - 1 || index < 0) {
-                channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
-                return;
+            if(command[1].matches("^[0-9]*$")) {
+                int index = Integer.parseInt(command[1]) - 1;
+                int size = musicManager.scheduler.getQueue().size();
+                if(index > size - 1 || index < 0) {
+                    channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                    return;
+                }
+                AudioTrack deleted = musicManager.scheduler.get(index);
+                channel.sendMessage("```" + (index + 1) + "번째 노래 삭제됨\n" +
+                        "삭제된 트랙 :\n" +
+                        deleted.getInfo().title + " - <" +
+                        timeFormatter(deleted.getInfo().length, deleted.getInfo().length)  +
+                        ">```" ).queue();
+            } else if(command[1].contains("-")) {
+                String[] range = command[1].split("-");
+                if(range.length != 2) {
+                    channel.sendMessage("```잘못된 명령어. del (index / start-end) ```").queue();
+                    return;
+                } else {
+                    int size = musicManager.scheduler.getQueue().size();
+                    int start = Integer.parseInt(range[0]) - 1;
+                    int end = Integer.parseInt(range[1]) - 1;
+                    if(start > size - 1 || start < 0) {
+                        channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                        return;
+                    }
+                    if(end > size - 1 || end < 0) {
+                        channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                        return;
+                    }
+                    if(start > end) {
+                        channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                        return;
+                    }
+
+                    for(int i = start; i <= end; i++) {
+                        musicManager.scheduler.get(0);
+                    }
+                    channel.sendMessage("```" + (start + 1) + " ~ " + (end + 1) + "번 곡이 삭제됨.\n" +
+                        "삭제된 곡 수 : " + (end - start + 1) + "```").queue();
+                }
             }
-            AudioTrack deleted = musicManager.scheduler.get(index);
-            channel.sendMessage("```" + (index + 1) + "번째 노래 삭제됨\n" +
-                    "삭제된 트랙 :\n" +
-                    deleted.getInfo().title + " - <" +
-                    timeFormatter(deleted.getInfo().length, deleted.getInfo().length)  +
-                    ">```" ).queue();
+
+
         } else {
-            channel.sendMessage("```잘못된 명령어. del (index)```").queue();
+            channel.sendMessage("```잘못된 명령어. del (index / start-end) ```").queue();
         }
     }
 
