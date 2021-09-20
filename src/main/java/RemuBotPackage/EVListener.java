@@ -122,6 +122,7 @@ public class EVListener extends ListenerAdapter {
             case "quit" :
                 if(currentTrack != null)
                     musicManager.player.stopTrack();
+                jda.getPresence().setActivity(Activity.playing("-help"));
                 audioManager.closeAudioConnection();
                 break;
             case "set":
@@ -326,7 +327,7 @@ public class EVListener extends ListenerAdapter {
                         AudioTrack clone = musicManager.player.getPlayingTrack().makeClone();
                         musicManager.player.playTrack(clone);
                         if (musicManager.player.getPlayingTrack() != null) {
-                            jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                            jda.getPresence().setActivity(Activity.listening(musicManager.player.getPlayingTrack().getInfo().title));
                         }
                     }
                     ytPlayer.printNowPlaying(channel, ytPlayer.musicManager);

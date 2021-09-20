@@ -54,7 +54,7 @@ public class YTPlayer extends ListenerAdapter {
                     play(voiceChannel, channel.getGuild(), musicManager, track);
                     printNowPlaying(channel, musicManager);
                     if (musicManager.player.getPlayingTrack() != null) {
-                        jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                        jda.getPresence().setActivity(Activity.listening(musicManager.player.getPlayingTrack().getInfo().title));
                     }
 
 
@@ -79,7 +79,7 @@ public class YTPlayer extends ListenerAdapter {
                     musicManager.scheduler.queue(t);
                 }
                 if (musicManager.player.getPlayingTrack() != null) {
-                    jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                    jda.getPresence().setActivity(Activity.listening(musicManager.player.getPlayingTrack().getInfo().title));
                 }
 
 
@@ -117,7 +117,7 @@ public class YTPlayer extends ListenerAdapter {
                 channel.sendMessage("```" + (index + 1) + "번째 노래 재생```").queue();
                 musicManager.player.playTrack(deleted);
                 if (musicManager.player.getPlayingTrack() != null) {
-                    jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                    jda.getPresence().setActivity(Activity.listening(musicManager.player.getPlayingTrack().getInfo().title));
                 }
 
 

@@ -98,7 +98,9 @@ public class TrackScheduler extends AudioEventAdapter {
         }
 
         if (ytPlayer.musicManager.player.getPlayingTrack() != null) {
-            jda.getPresence().setActivity(Activity.playing(player.getPlayingTrack().getInfo().title));
+            jda.getPresence().setActivity(Activity.listening(player.getPlayingTrack().getInfo().title));
+        } else {
+            jda.getPresence().setActivity(Activity.playing("-help"));
         }
 
     }
