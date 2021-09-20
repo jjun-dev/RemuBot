@@ -13,10 +13,11 @@ import java.nio.channels.ClosedByInterruptException;
 
 public class Main extends ListenerAdapter {
 
+    public static JDA jda;
 
 
     public static void main(String[] args) throws LoginException, SocketException , ClosedByInterruptException {
-        JDA jda = JDABuilder.createDefault("")
+         jda = JDABuilder.createDefault("")
                 .addEventListeners(new EVListener())
                 .build();
 

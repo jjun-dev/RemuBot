@@ -4,13 +4,14 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import net.dv8tion.jda.api.entities.Activity;
 
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static RemuBotPackage.EVListener.channel;
-import static RemuBotPackage.EVListener.musicChannel;
+
+import static RemuBotPackage.Main.jda;
 
 
 /**
@@ -90,8 +91,15 @@ public class TrackScheduler extends AudioEventAdapter {
     public void nextTrack() {
         // Start the next track, regardless of if something is already playing or not. In case queue was empty, we are
         // giving null to startTrack, which is a valid argument and will simply stop the player.
-        player.startTrack(queue.poll(), false);
+        try {
+            player.startTrack(queue.poll(), false);
+        } catch (IllegalStateException e) {
+            player.playTrack(player.getPlayingTrack().makeClone());
+        }
 
+        if (ytPlayer.musicManager.player.getPlayingTrack() != null) {
+            jda.getPresence().setActivity(Activity.playing(player.getPlayingTrack().getInfo().title));
+        }
 
     }
 
@@ -101,9 +109,7 @@ public class TrackScheduler extends AudioEventAdapter {
         if (endReason.mayStartNext) {
             nextTrack();
         }
-        if (ytPlayer.musicManager.player.getPlayingTrack() != null) {
-            ytPlayer.printNowPlaying(musicChannel, ytPlayer.musicManager);
-        }
+
     }
 
 

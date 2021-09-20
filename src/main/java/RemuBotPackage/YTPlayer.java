@@ -16,6 +16,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static RemuBotPackage.EVListener.skiptime;
+import static RemuBotPackage.Main.jda;
 
 
 public class YTPlayer extends ListenerAdapter {
@@ -51,7 +52,10 @@ public class YTPlayer extends ListenerAdapter {
                 AudioTrack currentTrack = musicManager.player.getPlayingTrack();
                 if(currentTrack == null) {
                     play(voiceChannel, channel.getGuild(), musicManager, track);
-                    channel.sendMessage("```노래 재생 : " + musicManager.player.getPlayingTrack().getInfo().title + "```").queue();
+                    printNowPlaying(channel, musicManager);
+                    if (musicManager.player.getPlayingTrack() != null) {
+                        jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                    }
 
 
                 } else {
@@ -74,7 +78,10 @@ public class YTPlayer extends ListenerAdapter {
                 for (AudioTrack t : playlist.getTracks()) {
                     musicManager.scheduler.queue(t);
                 }
-                printNowPlaying(channel, musicManager);
+                if (musicManager.player.getPlayingTrack() != null) {
+                    jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                }
+
 
 
 
@@ -109,6 +116,10 @@ public class YTPlayer extends ListenerAdapter {
                 AudioTrack deleted = musicManager.scheduler.get(index);
                 channel.sendMessage("```" + (index + 1) + "번째 노래 재생```").queue();
                 musicManager.player.playTrack(deleted);
+                if (musicManager.player.getPlayingTrack() != null) {
+                    jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                }
+
 
 
             } else {
@@ -329,6 +340,7 @@ public class YTPlayer extends ListenerAdapter {
                 channel.sendMessage("```오류 : 올바른 시간을 선택해 주세요. \n*음악 길이 : " + timeFormatter(currentTrack.getDuration(), currentTrack.getDuration()) + "*```" ).queue();
                 return;
             }
+
             currentTrack.setPosition(time);
 
             channel.sendMessage("```" + timeFormat + "초로" + "\n"

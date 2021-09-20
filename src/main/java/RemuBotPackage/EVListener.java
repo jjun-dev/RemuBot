@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-
+import static RemuBotPackage.Main.jda;
 
 
 public class EVListener extends ListenerAdapter {
@@ -31,7 +31,7 @@ public class EVListener extends ListenerAdapter {
     private final Map<Long, GuildMusicManager> musicManagers;
 
     public static TextChannel channel;
-    public static TextChannel musicChannel = null;
+
 
     private static final HashMap<User, ArrayList<SavedQueue>> savedPlaylists = new HashMap<>();
 
@@ -89,7 +89,6 @@ public class EVListener extends ListenerAdapter {
         switch (command[0]) {
             case "p" :
             case "play" :
-                musicChannel = guild.getTextChannelById(channel.getIdLong());
                 ytPlayer.playCommand(voiceChannel, channel, command, currentTrack);
                 break;
             case "s":
@@ -142,6 +141,11 @@ public class EVListener extends ListenerAdapter {
                     channel.sendMessage("```스트리밍 재생시 사용 불가```").queue();
                     break;
                 }
+                if(musicManager.player.isPaused()) {
+                    channel.sendMessage("```일시중지 중에는 사용 불가```").queue();
+                    ytPlayer.printNowPlaying(channel, musicManager);
+                    break;
+                }
                 if(command.length == 1) {
                     ytPlayer.skipBySkiptime(channel);
                     break;
@@ -160,6 +164,11 @@ public class EVListener extends ListenerAdapter {
                     channel.sendMessage("```스트리밍 재생시 사용 불가```").queue();
                     break;
                 }
+                if(musicManager.player.isPaused()) {
+                    channel.sendMessage("```일시중지 중에는 사용 불가```").queue();
+                    ytPlayer.printNowPlaying(channel, musicManager);
+                    break;
+                }
                 if(command.length == 2) {
                     ytPlayer.jumper(channel, command[1]);
                 } else {
@@ -169,6 +178,7 @@ public class EVListener extends ListenerAdapter {
             case "stop":
             case "st":
                 musicManager.player.stopTrack();
+                jda.getPresence().setActivity(Activity.playing("-help"));
                 System.out.println(currentTrack.getState());
                 channel.sendMessage("```음악 중지```").queue();
                 break;
@@ -310,14 +320,16 @@ public class EVListener extends ListenerAdapter {
                     channel.sendMessage(output).queue();
 
                     try {
-                        musicChannel = channel.getGuild().getTextChannelById(channel.getIdLong());
                         musicManager.scheduler.nextTrack();
-                        ytPlayer.printNowPlaying(channel, ytPlayer.musicManager);
+
                     } catch (IllegalStateException e) {
-                        musicChannel = channel.getGuild().getTextChannelById(channel.getIdLong());
                         AudioTrack clone = musicManager.player.getPlayingTrack().makeClone();
                         musicManager.player.playTrack(clone);
+                        if (musicManager.player.getPlayingTrack() != null) {
+                            jda.getPresence().setActivity(Activity.playing(musicManager.player.getPlayingTrack().getInfo().title));
+                        }
                     }
+                    ytPlayer.printNowPlaying(channel, ytPlayer.musicManager);
 
                 }
             } else {
@@ -333,7 +345,8 @@ public class EVListener extends ListenerAdapter {
                 memo += command[i] += " ";
             }
             BlockingQueue<AudioTrack> myQueue = new LinkedBlockingQueue<>();
-            myQueue.add(musicManager.player.getPlayingTrack().makeClone());
+            if(musicManager.player.getPlayingTrack() != null)
+                myQueue.add(musicManager.player.getPlayingTrack().makeClone());
             Iterator<AudioTrack> currentQueueIterator = musicManager.scheduler.getIterator();
             while(currentQueueIterator.hasNext())
                 myQueue.add(currentQueueIterator.next());
