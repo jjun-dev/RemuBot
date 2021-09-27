@@ -82,6 +82,7 @@ public class EVListener extends ListenerAdapter {
 
         if(content.charAt(0) != prefix)
             return;
+
         String[] command = content.substring(1).split(" ");
 
         System.out.println(content);
@@ -89,7 +90,8 @@ public class EVListener extends ListenerAdapter {
         switch (command[0]) {
             case "p" :
             case "play" :
-                ytPlayer.playCommand(voiceChannel, channel, command, currentTrack);
+                //ytPlayer.playCommand(voiceChannel, channel, command);
+                ytPlayer.playCommand(event, command);
                 break;
             case "s":
             case "skip" :

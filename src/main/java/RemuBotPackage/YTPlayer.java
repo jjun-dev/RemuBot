@@ -6,11 +6,14 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackState;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
 
 
+import java.awt.*;
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -19,7 +22,10 @@ import static RemuBotPackage.EVListener.skiptime;
 import static RemuBotPackage.Main.jda;
 
 
+
 public class YTPlayer extends ListenerAdapter {
+
+    private static EmbedBuilder eb = new EmbedBuilder().setColor(new Color(0x95BDF8));
 
 
     private static final EVListener evListener = new EVListener();
@@ -42,7 +48,7 @@ public class YTPlayer extends ListenerAdapter {
     }
 
 
-
+    // 유튜브 링크(또는 플레이리스트 링크) 플레이
     public void loadAndPlay(final VoiceChannel voiceChannel, final TextChannel channel, final String trackUrl) {
 
 
@@ -60,7 +66,11 @@ public class YTPlayer extends ListenerAdapter {
 
                 } else {
                     musicManager.scheduler.queue(track);
-                    channel.sendMessage("```노래 추가됨 : " + track.getInfo().title + "```").queue();
+                    AudioTrackInfo info = track.getInfo();
+                    eb.setTitle("큐에 추가됨");
+                    eb.addField("추가된 트랙",hyperLink(info.title, info.uri), false);
+                    eb.addField("채널", info.author, false);
+                    sending(channel, "f", true);
                 }
 
             }
@@ -68,7 +78,9 @@ public class YTPlayer extends ListenerAdapter {
             @Override
             public void playlistLoaded(AudioPlaylist playlist) {
 
-                channel.sendMessage("```플레이리스트 추가 완료 : " + playlist.getName() + "```").queue();
+                eb.setTitle("플레이리스트 추가됨");
+                eb.addField("추가된 플레이리스트", hyperLink(playlist.getName(),trackUrl) , false);
+                sending(channel, "f", true);
 
                 if(musicManager.player.getPlayingTrack() == null) {
                     connectToVoiceChannel(voiceChannel, channel.getGuild().getAudioManager());
@@ -89,103 +101,174 @@ public class YTPlayer extends ListenerAdapter {
 
             @Override
             public void noMatches() {
-                channel.sendMessage("```노래를 찾을 수 없음 : \n" + trackUrl + "```").queue();
+                eb.addField("노래를 찾을 수 없음", trackUrl, false);
+                sending(channel, "f", false);
             }
 
             @Override
             public void loadFailed(FriendlyException exception) {
-                channel.sendMessage("```노래 로딩 실패 : " + exception.getMessage() + "```").queue();
+                eb.addField("노래 로딩 실패", exception.getMessage(), false);
+                sending(channel, "f", false);
             }
         });
     }
 
-    public void playCommand (VoiceChannel voiceChannel, TextChannel channel, String[] command, AudioTrack currentTrack) {
+
+
+    public void playCommand (GuildMessageReceivedEvent event, String[] command) {
+        // 명령어를 보낸 텍스트 채널
+        TextChannel channel = event.getChannel();
+        // 보낸 유저가 접속중인 보이스 채널
+        VoiceChannel voiceChannel = event.getMember().getVoiceState().getChannel();
+
+
+
+
+
+
+        // 보이스 채널에 미접속 중일 시 실행되지 않음.
         if(voiceChannel == null) {
-            channel.sendMessage("```먼저 음성채널에 접속하세요```").queue();
+            eb.setDescription("먼저 음성채널에 접속하세요");
+            sending(channel, "d", false);
             return;
         }
+
+        // play ~~
         if(command.length == 2) {
+            // play 트랙번호
             if(command[1].matches("^[0-9]*$")) {
                 int index = Integer.parseInt(command[1]) - 1;
 
                 int size = musicManager.scheduler.getQueue().size();
                 if(index > size - 1 || index < 0) {
-                    channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                    eb.setDescription("잘못된 인덱스. 현재 재생목록 수 : " + size);
+                    sending(channel, "d", false);
                     return;
                 }
-                AudioTrack deleted = musicManager.scheduler.get(index);
-                channel.sendMessage("```" + (index + 1) + "번째 노래 재생```").queue();
-                musicManager.player.playTrack(deleted);
+                AudioTrack selected = musicManager.scheduler.get(index);
+                eb.setDescription((index + 1) + "번째 노래 재생");
+                sending(channel, "d", false);
+                musicManager.player.playTrack(selected);
                 if (musicManager.player.getPlayingTrack() != null) {
                     jda.getPresence().setActivity(Activity.listening(musicManager.player.getPlayingTrack().getInfo().title));
                 }
 
 
-
+            // play 유튜브 링크
             } else {
                 loadAndPlay(voiceChannel, channel, command[1]);
             }
+        // play (none)
         } else if (command.length == 1) {
             if(musicManager.player.getPlayingTrack() == null) {
-                Iterator<AudioTrack> iterator = musicManager.scheduler.getIterator();
-                if(iterator.hasNext()) {
-                    musicManager.scheduler.nextTrack();
+                musicManager.scheduler.nextTrack();
+                if (musicManager.player.getPlayingTrack() != null) {
                     printNowPlaying(channel, musicManager);
                 } else {
-                    channel.sendMessage("```재생할 노래가 없습니다.```").queue();
+                    eb.setDescription("재생할 노래가 없습니다.");
+                    sending(channel, "d", false);
                 }
+
             }
         }
     }
 
+    public String hyperLink(String content, String url) {
+        return "[" + content + "](<" + url + ">)";
+    }
+
+    public String italic(String content) {
+        return "*" + content + "*";
+    }
+
+    public String trackInfo(AudioTrack track) {
+        AudioTrackInfo info = track.getInfo();
+        String text = info.title + " - " + italic(timeFormatter(info.length, info.length));
+        return hyperLink(text, info.uri);
+    }
+
+    public void sending(TextChannel channel, String type, boolean hasTitle) {
+
+        switch (type) {
+            // description
+            case "d":
+                channel.sendMessageEmbeds(eb.build()).queue();
+                eb.setDescription(null);
+                break;
+            // field
+            case "f":
+                channel.sendMessageEmbeds(eb.build()).queue();
+                eb.clearFields();
+                break;
+        }
+
+        if(hasTitle) {
+            eb.setTitle(null);
+        }
+    }
+
     public void delete (TextChannel channel, String[] command) {
+        // delete ~~
         if(command.length == 2) {
+            // delete number
             if(command[1].matches("^[0-9]*$")) {
                 int index = Integer.parseInt(command[1]) - 1;
                 int size = musicManager.scheduler.getQueue().size();
+
+                // if index is wrong
                 if(index > size - 1 || index < 0) {
-                    channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                    eb.addField("잘못된 인덱스", "현재 재생목록 수 : " + size, false);
+                    sending(channel, "f", false);
                     return;
                 }
+
                 AudioTrack deleted = musicManager.scheduler.get(index);
-                channel.sendMessage("```" + (index + 1) + "번째 노래 삭제됨\n" +
-                        "삭제된 트랙 :\n" +
-                        deleted.getInfo().title + " - <" +
-                        timeFormatter(deleted.getInfo().length, deleted.getInfo().length)  +
-                        ">```" ).queue();
+
+                eb.setTitle((index + 1) + "번째 노래 삭제됨");
+                eb.addField("삭제된 트랙", trackInfo(deleted), false);
+                sending(channel, "f", true);
+
+            // delete index-index
             } else if(command[1].contains("-")) {
                 String[] range = command[1].split("-");
+
+                // if index is wrong
                 if(range.length != 2) {
-                    channel.sendMessage("```잘못된 명령어. del (index / start-end) ```").queue();
-                    return;
+                    eb.setDescription("잘못된 명령어. del (index / start-end)");
+                    sending(channel, "d", false);
                 } else {
                     int size = musicManager.scheduler.getQueue().size();
                     int start = Integer.parseInt(range[0]) - 1;
                     int end = Integer.parseInt(range[1]) - 1;
                     if(start > size - 1 || start < 0) {
-                        channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                        eb.setDescription("잘못된 인덱스. 현재 재생목록 수 : " + size);
+                        sending(channel, "d", false);
                         return;
                     }
                     if(end > size - 1 || end < 0) {
-                        channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                        eb.setDescription("잘못된 인덱스. 현재 재생목록 수 : " + size);
+                        sending(channel, "d", false);
                         return;
                     }
                     if(start > end) {
-                        channel.sendMessage("```잘못된 인덱스. 현재 재생목록 수 : " + size + "```").queue();
+                        eb.setDescription("잘못된 인덱스. 현재 재생목록 수 : " + size);
+                        sending(channel, "d", false);
                         return;
                     }
 
                     for(int i = start; i <= end; i++) {
                         musicManager.scheduler.get(start);
                     }
-                    channel.sendMessage("```" + (start + 1) + " ~ " + (end + 1) + "번 곡이 삭제됨.\n" +
-                        "삭제된 곡 수 : " + (end - start + 1) + "```").queue();
+                    eb.setTitle((start + 1) + " ~ " + (end + 1) + "번 곡이 삭제됨.");
+                    eb.addField("삭제된 곡 수", "" + (end - start + 1), false);
+                    sending(channel, "f", true);
                 }
             }
 
 
         } else {
-            channel.sendMessage("```잘못된 명령어. del (index / start-end) ```").queue();
+            eb.setDescription("잘못된 명령어. del (index / start-end)");
+            sending(channel, "d", false);
         }
     }
 
@@ -197,31 +280,43 @@ public class YTPlayer extends ListenerAdapter {
 
     }
 
+    // print playing queue
     public void printNowPlaying(TextChannel channel, GuildMusicManager musicManager) {
         AudioTrack currentTrack = musicManager.player.getPlayingTrack();
 
         if(currentTrack == null || currentTrack.getState().equals(AudioTrackState.STOPPING)) {
-            channel.sendMessage("```현재 재생중이 아닙니다.```").queue();
+            eb.setDescription("현재 재생중이 아닙니다.");
+            sending(channel, "d", false);
             return;
         }
+
         AudioTrackInfo info = currentTrack.getInfo();
-        StringBuilder msg = new StringBuilder("```현재 재생중 : \n");
-        msg.append("제목 : ").append(info.title).append("\n")
-                .append("By : ").append(info.author).append("\n");
+
+        String title = hyperLink(info.title, info.uri);
+        String time = "";
+
+
+
         if(info.isStream) {
-            msg.append("실시간 스트리밍\n");
+            time = "**실시간 스트리밍**";
         } else {
-            msg.append(timeFormatter(currentTrack.getPosition(), currentTrack.getDuration()))
-                    .append(" / ")
-                    .append(timeFormatter(info.length, currentTrack.getDuration())).append("\n");
+            time = timeFormatter(currentTrack.getPosition(), currentTrack.getDuration())
+                    + " / "
+                    + timeFormatter(info.length, currentTrack.getDuration());
         }
         if(musicManager.player.isPaused())
-            msg.append("*일시 중지됨*\n");
-        channel.sendMessage(msg + "```").queue();
+            time += italic("\n일시 중지됨");
+
+        eb.setTitle("현재 재생중");
+        eb.addField("트랙 명", title, false);
+        eb.addField("재생 시간", time, false);
+        sending(channel, "f", true);
     }
 
 
     public void printQueue(TextChannel channel, GuildMusicManager musicManager, String[] command) {
+        eb.setTitle("현재 큐 목록");
+
         BlockingQueue<AudioTrack> que = musicManager.scheduler.getQueue();
 
         String[] strArr = new String[que.size()];
@@ -229,31 +324,35 @@ public class YTPlayer extends ListenerAdapter {
 
         Iterator<AudioTrack> trackIterator = musicManager.scheduler.getIterator();
         long sum = 0;
-        String startStr;
+        String currentInfo;
+
+
         if(currentTrack == null || currentTrack.getState().equals(AudioTrackState.STOPPING)) {
-            startStr = "```md\n현재 재생중 : 재생 중이 아님.\n\n";
+            currentInfo = "재생 중이 아님.";
         } else {
-            startStr = "```md\n현재 재생중 : " + currentTrack.getInfo().title;
+            AudioTrackInfo info = currentTrack.getInfo();
+            currentInfo = hyperLink(info.title, info.uri);
             if(currentTrack.getInfo().isStream) {
-                startStr += " - <실시간 스트리밍>\n";
+                currentInfo += "\n**실시간 스트리밍**";
             } else {
-                startStr += " - <"
-                        + timeFormatter(currentTrack.getPosition(), currentTrack.getDuration()) + "> / <"
-                        + timeFormatter(currentTrack.getDuration(), currentTrack.getDuration()) + ">\n";
+                currentInfo += "\n"
+                        + timeFormatter(currentTrack.getPosition(), currentTrack.getDuration()) + " / "
+                        + timeFormatter(currentTrack.getDuration(), currentTrack.getDuration());
             }
             if(musicManager.player.isPaused())
-                startStr += "*일시 중지됨*";
-            startStr += "\n";
+                currentInfo += "\n*일시 중지됨*";
+
             if(!(currentTrack.getInfo().isStream))
                 sum += currentTrack.getDuration();
         }
+        eb.addField("현재 재생중", currentInfo, false);
 
-        if(que.size() <= 20) {
-            startStr += "현재 재생 목록 : \n\n";
+        if(que.size() <= 10) {
+            eb.addField("현재 재생 목록",italic("전체 표시"),false);
         } else if(command.length == 1) {
-            startStr += "현재 재생 목록 : \n(상위 20개만 표시, 전체 보기 : queue all)\n\n";
+            eb.addField("현재 재생 목록",italic("상위 10개만 표시, 전체 보기 : queue all"), false);
         } else if(command[1].equals("all")) {
-            startStr += "현재 재생 목록 : \n\n";
+            eb.addField("현재 재생 목록",italic("전체 표시"),false);
         }
 
         int index = 0;
@@ -262,62 +361,63 @@ public class YTPlayer extends ListenerAdapter {
             AudioTrackInfo trackInfo = track.getInfo();
             if(!(trackInfo.isStream))
                 sum += trackInfo.length;
-            strArr[index] = trackInfo.title + " - <";
+            strArr[index] = hyperLink(trackInfo.title, trackInfo.uri) + " - ";
             if(trackInfo.isStream) {
-                strArr[index] += "실시간 스트리밍";
+                strArr[index] += italic("실시간 스트리밍");
             } else {
-                strArr[index] += timeFormatter(trackInfo.length, trackInfo.length);
+                strArr[index] += italic(timeFormatter(trackInfo.length, trackInfo.length));
             }
-            strArr[index] += ">\n\n";
             index++;
         }
 
 
-
-        String sumStr = "\n\n총 갯수(재생 중 제외) : " + (que.size())
-                + "\n총 길이(재생 중 포함) : <" + timeFormatter(sum, sum) + ">\n```";
+        String sumStr = "\n\n**총 갯수(재생 중 제외) : \n**" + (que.size())
+                + "\n\n**총 길이(재생 중 포함) : \n**" + timeFormatter(sum, sum);
 
         String result;
-        if(strArr.length <= 20) {
-            result = startStr;
+        if(strArr.length <= 10) {
+            result = "";
             for (int i = 0; i < strArr.length; i++) {
                 result += (i + 1) + ". ";
-                result += strArr[i];
+                result += strArr[i] += "\n\n\n";
             }
             result += sumStr;
 
-            channel.sendMessage(result).queue();
+            eb.addField("\n\n", result, false);
+            sending(channel, "f", true);
+
         } else if(command.length == 1) {
-            result = startStr;
-            for (int i = 0; i < 20; i++) {
-                result += i + 1 + ". ";
-                result += strArr[i];
+            result = "";
+            for (int i = 0; i < 10; i++) {
+                result += (i + 1) + ". ";
+                result += strArr[i] += "\n\n\n";
             }
             result += sumStr;
 
-            channel.sendMessage(result).queue();
+            eb.addField("\n\n", result, false);
+            sending(channel, "f", true);
         }
         else {
-            result = startStr;
+            result = "";
             for (int i = 0; i < strArr.length; i++) {
                 result += i + 1 + ". ";
-                result += strArr[i];
+                result += strArr[i] += "\n\n\n";
                 if(i == strArr.length - 1) {
                     result += sumStr;
-
-                    channel.sendMessage(result).queue();
+                    eb.addField("\n\n", result, false);
+                    sending(channel, "f", true);
                     break;
                 }
-                if(i > 1 && (i + 1) % 20 == 0) {
-                    result += "```";
-
-                    channel.sendMessage(result).queue();
-                    result = "```md\n";
+                if(i > 1 && (i + 1) % 7 == 0) {
+                    eb.addField("\n\n", result, false);
+                    sending(channel, "f", true);
+                    result = "";
                 }
             }
         }
     }
 
+    // TODO : Make code pretty under
 
     public void skipTrack(TextChannel channel) {
 
@@ -493,4 +593,6 @@ public class YTPlayer extends ListenerAdapter {
     public static void connectToVoiceChannel(VoiceChannel voiceChannel, AudioManager audioManager) {
         audioManager.openAudioConnection(voiceChannel);
     }
+
+
 }
